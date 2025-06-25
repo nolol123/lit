@@ -1,0 +1,82 @@
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+local highlightFolder = Instance.new("Folder")
+highlightFolder.Name = "WallhackHighlights"
+highlightFolder.Parent = game.Workspace
+
+local function createUsernameLabel(player)
+    if player.Character and player.Character:FindFirstChild("Head") then
+        local head = player.Character.Head
+        
+        -- Remove old label if it exists
+        if head:FindFirstChild("UsernameLabel") then
+            head.UsernameLabel:Destroy()
+        end
+        
+        local billboardGui = Instance.new("BillboardGui")
+        billboardGui.Name = "UsernameLabel"
+        billboardGui.Size = UDim2.new(4, 0, 1, 0)
+        billboardGui.StudsOffset = Vector3.new(0, 2, 0)
+        billboardGui.Adornee = head
+        billboardGui.AlwaysOnTop = true
+        billboardGui.Parent = head
+
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.BackgroundTransparency = 1
+        textLabel.TextScaled = true
+        textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        textLabel.Font = Enum.Font.SourceSansBold
+        textLabel.Text = player.Name
+        textLabel.Parent = billboardGui
+    end
+end
+
+local function createHighlight(player)
+    if player.Character then
+        -- Check if highlight already exists
+        local highlight = highlightFolder:FindFirstChild(player.Name)
+        if not highlight then
+            highlight = Instance.new("Highlight")
+            highlight.Name = player.Name
+            highlight.FillColor = Color3.fromRGB(255, 0, 0) -- Red color
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.Parent = highlightFolder
+        end
+        highlight.Adornee = player.Character
+        createUsernameLabel(player)
+    end
+end
+
+local function updateHighlights()
+    -- Ensure every player has a highlight and username label, remove for those who left
+    for _, player in ipairs(Players:GetPlayers()) do
+        createHighlight(player)
+    end
+
+    for _, highlight in ipairs(highlightFolder:GetChildren()) do
+        local player = Players:FindFirstChild(highlight.Name)
+        if not player or not player.Character or not player.Character.Parent then
+            highlight:Destroy()
+        end
+    end
+end
+
+-- Listen for character spawn and ensure highlight + username label is created immediately
+local function onPlayerAdded(player)
+    if player.Character then
+        createHighlight(player) -- Apply immediately if character exists
+    end
+    player.CharacterAdded:Connect(function()
+        task.wait(0.1) -- Small delay to ensure character is fully loaded
+        createHighlight(player)
+    end)
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)
+for _, player in ipairs(Players:GetPlayers()) do
+    onPlayerAdded(player)
+end
+
+RunService.Heartbeat:Connect(updateHighlights)
